@@ -6,41 +6,34 @@ import datetime
 def fetch_bangumi_list(year: int, month: int):
     url = f"https://youranimes.tw/bangumi/{year}{month:02d}"
     headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        print(f"请求失败: {response.status_code}")
-        return []
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    bangumi_list = []
+    result = []
+    for h3 in soup.find_all("h3"):
+        title = h3.get_text(strip=True)
 
-    #选择器根据页面结构修改
-    items = soup.select(".bangumi-item")
-    for item in items:
-        title = item.select_one(".bangumi-title")
-        cover = item.select_one("img")
-        link = item.select_one("a")
+        next_elem = h3.find_next_sibling()
+        info = {}
+        while next_elem and next_elem.name != "h3":
+            text = next_elem.get_text(strip=True)
+            if "首播" in text:
+                info["broadcast"] = text
+            next_elem = next_elem.find_next_sibling()
 
-        bangumi_list.append({
-            "title": title.get_text(strip=True) if title else "未知标题",
-            "cover": cover["src"] if cover else None,
-            "link": link["href"] if link else None
+        result.append({
+            "title": title,
+            **info
         })
-
-    return bangumi_list
-
+    return result
 
 if __name__ == "__main__":
     now = datetime.datetime.now()
     month = (now.month - 1) // 3 * 3 + 1
-    if month <= 3: month = 1
-    elif month <= 6: month = 4
-    elif month <= 9: month = 7
-    else: month = 10
+    month = month if month in (1,4,7,10) else (1 if month <= 3 else 4 if month <= 6 else 7 if month <= 9 else 10)
 
-    result = fetch_bangumi_list(now.year, month)
-
+    data = fetch_bangumi_list(now.year, month)
     with open("bangumi.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-
-    print(f"已保存 {len(result)} 部番剧到 bangumi.json")
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print(f"已保存 {len(data)} 部番剧信息到 bangumi.json")
