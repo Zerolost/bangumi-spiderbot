@@ -31,10 +31,10 @@ def fetch_bangumi_list(year: int, month: int):
                 elif text.startswith(("動畫製作"， "动画制作")):
                     bangumi_data["动画制作"] = text.split("：", 1)[-1].strip()
                 elif text.startswith("原名"):
-                    bangumi_data["原名"] = text.split("："， 1)[-1]。strip()
+                    bangumi_data["原名"] = text.split("：", 1)[-1].strip()
             next_elem = next_elem.find_next_sibling()
 
-        if "监督" 在 bangumi_data 和 "总监督" not 在 bangumi_data:
+        if "监督" in bangumi_data and "总监督" not in bangumi_data:
             bangumi_data["总监督"] = bangumi_data["监督"]
 
         result.append(bangumi_data)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         save_files(year, month, data)
 
     else:
-        #自动全年模式
+        #自动全年四季度模式
         now = datetime.datetime.now()
         year = now.year
         quarters = [1, 4, 7, 10]
